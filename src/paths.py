@@ -5,6 +5,10 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
 DOCS_DIR = DATA_DIR / "docs"
 INDEX_DIR = DATA_DIR / "index_faiss"
+LOG_DIR = DATA_DIR / "logs"
+
+LOG_FILE = LOG_DIR / "interactions.jsonl"
+TESTS_FILE = LOG_DIR / "test_runs.jsonl"
 
 # Garante que os diretórios existam
 DATA_DIR.mkdir(exist_ok=True)

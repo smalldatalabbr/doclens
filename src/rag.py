@@ -1,6 +1,5 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableLambda
-from langchain_core.messages import AIMessage
 from langchain_groq import ChatGroq
 
 def load_llm(model: str, temperature: float):
@@ -34,22 +33,34 @@ REGRAS OBRIGATÓRIAS:
 
     def retrieve(inputs):
         docs = retriever.invoke(inputs["question"])
+
         context = "\n\n".join(
             f"{d.page_content}\n[fonte: {d.metadata.get('source','desconhecida')}]"
             for d in docs
         )
+
+        sources = [
+            {
+                "source": d.metadata.get("source", "desconhecida"),
+                "snippet": (d.page_content[:220] + "…") if len(d.page_content) > 220 else d.page_content
+            }
+            for d in docs
+        ]
+
         return {
             "question": inputs["question"],
             "context": context,
-            "chat_history": inputs["chat_history"]
+            "chat_history": inputs["chat_history"],
+            "sources": sources,
         }
 
     def answer(inputs):
-        return llm.invoke(prompt.format_messages(**inputs)).content
+        text = llm.invoke(prompt.format_messages(**inputs)).content
+        return {"answer": text, "sources": inputs.get("sources", [])}
 
-    rag_chain = (
-        RunnableLambda(retrieve)
-        | RunnableLambda(answer)
-    )
-
+    rag_chain = RunnableLambda(retrieve) | RunnableLambda(answer)
     return rag_chain
+
+def invoke_rag(rag_chain, prompt: str, chat_history):
+    return rag_chain.invoke({"question": prompt, "chat_history": chat_history})
+
