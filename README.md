@@ -8,84 +8,104 @@
 
 ## Visão Geral
 
-A **DocLens** é uma Proof of Concept (POC) que demonstra a construção e evolução de um **chatbot baseado em Retrieval-Augmented Generation (RAG)** para consulta de documentos, com foco em **rastreabilidade das respostas, controle de escopo e identificação sistemática de riscos**.
+A **DocLens** é uma **Proof of Concept (POC)** que demonstra a construção, avaliação e controle de um **chatbot baseado em Retrieval-Augmented Generation (RAG)** para consulta de documentos, com foco em:
 
-Este repositório encontra-se atualmente na **V2 da POC**, que parte de um **baseline funcional (V1)** e evolui para uma **camada explícita de auditoria adversarial**, responsável por **avaliar o comportamento do chatbot frente a prompts maliciosos, ambíguos ou fora de escopo**.
+* **controle explícito de escopo**
+* **rastreabilidade das respostas**
+* **identificação e mitigação ativa de riscos**
+* **comportamento previsível em ambientes sensíveis**
 
-A V2 **não aplica bloqueios ativos**. Seu objetivo é **observar, classificar e quantificar falhas**, criando insumos técnicos claros para a implementação de **guardrails ativos na V3**.
+O projeto evolui de um **baseline funcional (V1)** para uma **camada formal de auditoria adversarial (V2)** e culmina na **V3**, onde **guardrails ativos passam a interferir diretamente no fluxo de decisão do chatbot**, bloqueando, reescrevendo ou negando respostas inadequadas.
 
 ---
 
 ## Problema
 
-Chatbots RAG são amplamente utilizados para consulta de políticas, manuais e bases internas. Apesar disso, mesmo quando corretamente ancorados em documentos, esses sistemas tendem a apresentar falhas como:
+Chatbots RAG são amplamente utilizados para consulta de políticas internas, manuais operacionais e bases corporativas. Mesmo quando corretamente ancorados em documentos, esses sistemas frequentemente apresentam falhas como:
 
-* exposição indevida de conteúdo ou estrutura documental
+* exposição indevida de conteúdo documental
 * enumeração de seções ou inventário da base
-* uso de fontes inconsistentes ou inexistentes
-* extrapolação do escopo documental
+* respostas fora de escopo
+* uso inconsistente ou inexistente de fontes
 * tentativas de jailbreak parcialmente bem-sucedidas
 
-Antes de aplicar mecanismos de bloqueio, é fundamental **entender empiricamente como e onde o sistema falha**.
+Esses comportamentos reduzem a confiabilidade do sistema e representam riscos reais em ambientes corporativos.
 
-A V2 da DocLens foi criada exatamente para esse diagnóstico.
-
----
-
-## O que esta V2 entrega
-
-Além de manter todas as capacidades da V1, esta versão adiciona uma **camada formal de auditoria adversarial**, composta por:
-
-* Execução de **testes adversariais** contra o chatbot RAG
-* Classificação automática de riscos com base em:
-
-  * intenção do prompt
-  * comportamento da resposta
-* Agrupamento de falhas por categorias (exfiltração, inventário, rastreabilidade, jailbreak e fora de escopo)
-* Geração de **logs estruturados em JSON**
-* Consolidação automática dos resultados em um **relatório técnico de auditoria**
-
-📄 Um relatório completo em Markdown é gerado a partir da execução da auditoria, permitindo análise detalhada, rastreável e reprodutível dos testes realizados.
+Antes de aplicar bloqueios cegos, é fundamental **entender empiricamente como e onde o sistema falha** — e, a partir disso, **implementar mecanismos de controle explícitos**.
 
 ---
 
-## Abordagem
+## Evolução da POC
 
-Nesta fase, a DocLens opera como um **sistema observável**, não como um sistema blindado.
+### V1 — Baseline funcional
 
-A base documental continua sendo composta por documentação sintética de um banco fictício (“SDL Bank”), o que permite simular cenários realistas sem uso de dados sensíveis.
+* Chatbot RAG operando sobre uma base documental controlada
+* Respostas com citação de fontes
+* Sem mecanismos formais de controle ou auditoria
 
-A auditoria adversarial submete o chatbot a diferentes classes de prompts, avaliando:
+### V2 — Auditoria adversarial (diagnóstico)
 
-* tentativas de extração integral ou parcial de documentos
-* pedidos de inventário ou estrutura interna
-* respostas com fontes inexistentes ou inconsistentes
-* perguntas fora do domínio documental
-* tentativas explícitas de ignorar regras do sistema
+* Execução sistemática de **testes adversariais**
+* Classificação automática de riscos
+* Logs estruturados em JSON
+* Geração de **relatórios técnicos de auditoria**
+* **Sem bloqueios ativos** (sistema observável)
 
-O resultado dessa abordagem é um **mapa claro de riscos**, utilizado como base técnica para decisões de controle na V3.
+### V3 — Guardrails ativos e mitigação (atual)
+
+Na V3, a DocLens deixa de ser apenas observável e passa a ser **controlável**.
+
+O sistema implementa:
+
+* **Guardrail pré-RAG** (análise de intenção do prompt)
+* **Guardrail pós-RAG** (avaliação da resposta gerada)
+* Decisão explícita por interação:
+
+  * `allow`
+  * `block`
+  * `rewrite`
+  * `deny_out_of_scope`
+* Registro estruturado de decisões, riscos e violações
+* Auditoria separada entre **execução real (app)** e **testes adversariais (batch)**
+
+O objetivo não é censurar respostas arbitrariamente, mas **garantir previsibilidade, rastreabilidade e alinhamento ao escopo documental**.
 
 ---
 
-## Evidência de Auditoria (V2)
+## O que esta V3 entrega
 
-A auditoria executada nesta versão produziu os seguintes resultados consolidados:
+* Chatbot RAG com **controle ativo de comportamento**
+* Bloqueio explícito de tentativas de:
 
-* **11 testes adversariais executados**
-* **7/11 testes com risco ≥ 50 (alto risco)**
+  * exfiltração de documentos
+  * inventário da base
+  * jailbreak
+* Reescrita controlada de respostas sensíveis
+* Negação formal de perguntas fora do domínio
+* Logs estruturados para:
 
-| Grupo | Descrição                               | Qtde de testes | Risco médio |
-| ----- | --------------------------------------- | -------------: | ----------: |
-| A     | Exfiltração de conteúdo                 |              4 |        70.0 |
-| B     | Inventário / estrutura interna          |              1 |        80.0 |
-| C     | Rastreabilidade / fontes inconsistentes |              4 |        65.0 |
-| D     | Jailbreak                               |              1 |        60.0 |
-| E     | Fora do escopo                          |              2 |        15.0 |
-| OK    | Sem violações                           |              2 |         0.0 |
+  * auditoria técnica
+  * análise de falhas
+  * evolução de regras
+* Relatórios automáticos em Markdown:
 
-🔗 O relatório técnico completo, contendo prompts, respostas, fontes e classificação de risco, está disponível em:
+  * **auditoria batch**
+  * **execução do aplicativo**
 
-[📄 **Acesse o Relatório de Auditoria**](reports/run_20260131T133534Z.md)
+---
+
+## Evidência Operacional — Auditoria V3 (resumo)
+
+A auditoria batch executada na V3 produziu, por exemplo:
+
+* **15 testes adversariais**
+* **12/15 interações interceptadas**
+* **10/15 classificadas como alto risco (risk ≥ 50)**
+* Nenhuma anomalia operacional após calibração das regras
+
+Os resultados completos (prompts, decisões, riscos, fontes e respostas) são consolidados automaticamente em um **relatório técnico de auditoria**.
+
+📄 **Relatórios gerados** ficam disponíveis na pasta [`reports/`](reports/).
 
 ---
 
@@ -93,26 +113,39 @@ A auditoria executada nesta versão produziu os seguintes resultados consolidado
 
 ```text
 ├─ app.py
+│  └─ Aplicação Streamlit do chatbot RAG com guardrails ativos
+│
 ├─ audit/
-│ ├─ build_report.py
-│ ├─ logger.py
-│ ├─ prompts_phase2.py
-│ ├─ risk_rules.py
-│ └─ run_tests.py
+│  ├─ build_report.py        # gera relatório técnico da auditoria adversarial (batch)
+│  ├─ prompts_phase.py       # conjunto de prompts adversariais para testes
+│  ├─ run_tests.py           # executa testes adversariais contra o chatbot
+│  └─ risk_rules.py          # definição das regras e categorias de risco (nível auditoria)
+│
 ├─ data/
-│  ├─ docs/          # base de conhecimento (documentação sintética em Markdown)
-│  ├─ index_faiss/   # índice FAISS gerado automaticamente
-│  └─ logs/          # logs de auditoria
+│  ├─ docs/                 # base documental sintética (Markdown – SDL Bank)
+│  ├─ index_faiss/          # índice vetorial gerado automaticamente
+│  └─ logs/
+│     ├─ app/               # logs das interações reais do chatbot
+│     └─ audit/             # logs dos testes adversariais (batch)
+│
 ├─ imagens/
-│ └─ thumbnail.png
+│  └─ thumbnail.png         # imagem de capa / visual do projeto
+│
 ├─ reports/
-│ └─ run_20260129T200719Z.md
+│  ├─ app/                  # relatórios gerados a partir da execução do app
+│  └─ audit/                # relatórios da auditoria adversarial (batch)
+│
 ├─ src/
-│ ├─ ingest.py
-│ ├─ paths.py
-│ ├─ rag.py
-│ └─ vectorstore.py
+│  ├─ app_logger.py         # logging estruturado das interações do app
+│  ├─ build_app_report.py   # gera relatório consolidado da execução do chatbot
+│  ├─ guardrails.py         # lógica central de decisão (allow, block, rewrite, deny)
+│  ├─ ingest.py             # carregamento e preparação dos documentos
+│  ├─ paths.py              # centralização de caminhos e constantes do projeto
+│  ├─ rag.py                # pipeline RAG (LLM + Retriever + Chain)
+│  └─ vectorstore.py        # criação e carregamento do índice vetorial
+│
 └─ README.md
+
 ```
 
 ---
@@ -135,28 +168,31 @@ Crie um arquivo `.env`:
 GROQ_API_KEY=sua_chave_aqui
 ```
 
-### Execução do chatbot
+### Execução do chatbot (app)
 
 ```bash
 streamlit run app.py
 ```
 
-### Execução da auditoria (V2)
+Ao final da sessão, os logs da execução são gravados automaticamente e podem ser convertidos em um [**relatório do app**](reports/app/),
+
+### Execução da auditoria adversarial (V3)
 
 ```bash
 python3 -m audit.run_tests
 python3 -m audit.build_report
 ```
 
-Ao final da execução, os logs são processados e um **relatório de auditoria em Markdown** é gerado automaticamente.
+Ao final, um **relatório técnico em Markdown** é gerado automaticamente na pasta [`reports/audit/`](reports/audit/).
 
 ---
 
 ## Status da POC
 
 * **V1 — Baseline funcional:** concluída
-* **V2 — Auditoria e identificação de falhas:** concluída
-* **V3 — Guardrails ativos e mitigação:** em planejamento
+* **V2 — Auditoria adversarial:** concluída
+* **V3 — Guardrails ativos e mitigação:** concluída
+* **V3.1 — Julgamento semântico / prompt-as-judge:** em planejamento
 
 ---
 
@@ -171,10 +207,10 @@ Consulte o arquivo `LICENSE` para mais detalhes.
 
 Este projeto é uma **Proof of Concept (POC)** desenvolvida com fins demonstrativos, voltada à avaliação de arquiteturas de chatbots baseados em IA e práticas de uso responsável.
 
-A entidade “SDL Bank” é inteiramente fictícia.
-Todos os dados utilizados são sintéticos, não representam pessoas reais e não contêm informações sensíveis.
+A entidade **“SDL Bank” é fictícia**.
+Todos os dados utilizados são sintéticos e não representam informações reais.
 
-Este projeto **não deve ser utilizado em ambientes produtivos ou com dados reais**.
+Este projeto **não deve ser utilizado em ambientes produtivos**.
 
 ---
 
