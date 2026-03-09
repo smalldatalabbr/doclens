@@ -91,10 +91,7 @@ def decide_on_prompt(prompt: str) -> GuardrailDecision:
 
 
 def decide_on_answer(prompt: str, answer_text: str) -> GuardrailDecision:
-    """
-    Pós-RAG: valida 'comportamento' do modelo.
-    Aqui NÃO deve ficar a lógica do Teste 7 (isso é intenção do prompt).
-    """
+    # Pós-RAG: valida 'comportamento' do modelo.
     audit = classify_risk(prompt, answer=answer_text)
 
     action = (audit.get("action") or "allow").strip().lower()
